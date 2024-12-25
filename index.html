@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <div>
+        <p>Подключение</p>
+        Npgsql.EntityFrameworkCore.PostgreSQL
+Microsoft.EntityFrameworkCore.Tools
+Scaffold-DbContext "Host=localhost;Port=5432;Database=usersdb;Username=postgres;Password=123456789"
+Npgsql.EntityFrameworkCore.PostgreSQL
+
+<p>Frame</p>
+        TabControl>
+            TabItem>
+                TabItem.Header>
+                    TextBlock>Заказы TextBlock
+                /TabItem.Header>
+                Frame x:Name="ordersFrame" />
+            /TabItem>
+        /TabControl>
+
+            ordersFrame.Navigate(new Views.Orders());
+
+
+<p>Просмотр</p>
+
+Title="Подробности заказа" Height="400" Width="600">
+Grid>
+    TextBlock x:Name="OrderDetails" VerticalAlignment="Top" HorizontalAlignment="Left" Margin="10" FontSize="16"/>
+Grid>
+<p>Логика Просмотр</p>
+
+        public ViewOrder(Order order)
+        {
+            InitializeComponent();
+            DisplayOrderDetails(order);
+        }
+
+        private void DisplayOrderDetails(Order order)
+        {
+            StringBuilder details = new StringBuilder();
+            details.AppendLine($"Номер заказа: {order.IdOrders}");
+            details.AppendLine($"Клиент: {order.Client?.LastName} {order.Client?.FirstName}");
+            details.AppendLine($"Товар: {order.IdGoodsNavigation?.Name}");
+            details.AppendLine($"Количество: {order.Quantity}");
+            details.AppendLine($"Сотрудник: {order.IdEmployesNavigation?.LastName}");
+
+            OrderDetails.Text = details.ToString();
+        }
+
+        <p>Диалог</p>
+
+        Title="Диалог" Height="450" Width="800">
+    Grid>
+        TextBlock HorizontalAlignment="Center" VerticalAlignment="Top" FontSize="16" Margin="0,20,0,0">Информация о заказе</TextBlock>
+
+        StackPanel Margin="20,60,20,20">
+            TextBlock Text="Клиент:"/>
+            ComboBox x:Name="ClientComboBox" DisplayMemberPath="LastName" SelectedValuePath="IdClient"/>
+
+            TextBlock Text="Товар:" Margin="0,20,0,0"/>
+            ComboBox x:Name="GoodsComboBox" DisplayMemberPath="Name" SelectedValuePath="IdGoods"/>
+
+            TextBlock Text="Количество:" Margin="0,20,0,0"/>
+            TextBox x:Name="QuantityTextBox" />
+
+            Button Content="Сохранить" HorizontalAlignment="Center" VerticalAlignment="Bottom" Click="SaveButton_Click"/>
+        /StackPanel>
+    /Grid>
+/Window>
+
+<p>Логика Диалог</p>
+
+        private Order _order;
+        private bool _isEditMode = false;
+
+        public OrderDialog(Order order = null)
+        {
+            InitializeComponent();
+
+            if (order != null)
+            {
+                _isEditMode = true;
+                _order = order;
+                LoadOrderData();
+            }
+
+            LoadClientsAndGoods();
+        }
+
+        private void LoadClientsAndGoods()
+        {
+            using (var context = new HolidayContext())
+            {
+                ClientComboBox.ItemsSource = context.Clients.ToList();
+                GoodsComboBox.ItemsSource = context.Goods.ToList();
+            }
+        }
+
+        private void LoadOrderData()
+        {
+            ClientComboBox.SelectedValue = _order.IdClient;
+            GoodsComboBox.SelectedValue = _order.IdGoods;
+            QuantityTextBox.Text = _order.Quantity.ToString();
+        }
+
+        private void SaveButton_Click(object sender, RoutedEventArgs e)
+        {
+            int clientId = (int)ClientComboBox.SelectedValue;
+            int goodsId = (int)GoodsComboBox.SelectedValue;
+            int quantity = int.Parse(QuantityTextBox.Text);
+
+            using (var context = new HolidayContext())
+            {
+                if (_isEditMode)
+                {
+                    _order.IdClient = clientId;
+                    _order.IdGoods = goodsId;
+                    _order.Quantity = quantity;
+
+                    context.Orders.Update(_order);
+                }
+                else
+                {
+                    var newOrder = new Order
+                    {
+                        IdClient = clientId,
+                        IdGoods = goodsId,
+                        Quantity = quantity
+                    };
+
+                    context.Orders.Add(newOrder);
+                }
+
+                context.SaveChanges();
+                MessageBox.Show("Заказ успешно сохранен!");
+                this.Close();
+            }
+        }
+    }
+}
+<p>Заказы</p>
+
+
+      Title="Заказы">
+
+    Grid>
+        Grid.RowDefinitions>
+            RowDefinition Height="Auto" />
+            RowDefinition Height="*" />
+            RowDefinition Height="Auto" />
+        /Grid.RowDefinitions>
+
+        StackPanel Grid.Row="0" Orientation="Horizontal">
+            StackPanel >
+                TextBlock Text="Поиск" Width="300" />
+                TextBox x:Name="SearchTextBox" Width="300" Margin="0,0,10,0" TextChanged="SearchTextBox_TextChanged"/>
+            /StackPanel>
+            StackPanel>
+                TextBlock Text="Фильтрация" Width="300"/>
+                ComboBox x:Name="ComboxFilter" Width="300" SelectionChanged="ComboxFilter_SelectionChanged"/>
+            /StackPanel>
+            StackPanel>
+                Button Content="Добавить" HorizontalAlignment="Left" Margin="10" Width="150" Click="AddNewOrderButton_Click"/>
+                Button Content="Редактировать" Width="150" Margin="10" Click="EditOrderButton_Click"/>
+                Button Content="Удалить" Width="150" Margin="10" Click="DeleteOrderButton_Click"/>
+            /StackPanel>
+
+        /StackPanel>
+
+        ListView x:Name="datagridOrders" Grid.Row="1" MouseDoubleClick="datagridOrders_MouseDoubleClick">
+            ListView.View>
+                GridView>
+                    GridViewColumn Header="Клиент" DisplayMemberBinding="{Binding Client.LastName}"/>
+                    GridViewColumn Header="Товар" DisplayMemberBinding="{Binding IdGoodsNavigation.Name}"/>
+                    GridViewColumn Header="Количество" DisplayMemberBinding="{Binding Quantity}"/>
+                /GridView>
+            /ListView.View>
+        /ListView>
+        
+    /Grid>
+/Page>
+
+<p>Логика Заказы</p>
+
+
+        private List<Order> _allOrders;
+        private List<Good> _allGoods;
+
+        public Orders()
+        {
+            InitializeComponent();
+            LoadData();
+        }
+
+        private void LoadData()
+        {
+            using (var context = new HolidayContext())
+            {
+                _allOrders = context.Orders
+                    .Include(o => o.Client)
+                    .Include(o => o.IdGoodsNavigation)
+                    .ToList();
+
+                _allGoods = context.Goods.ToList();
+
+                ComboxFilter.ItemsSource = new List<string> { "Все" }
+                    .Concat(_allGoods.Select(g => g.Name)).ToList();
+
+                datagridOrders.ItemsSource = _allOrders;
+            }
+        }
+
+        private void AddNewOrderButton_Click(object sender, RoutedEventArgs e)
+        {
+            OrderDialog orderDialog = new OrderDialog();
+            orderDialog.ShowDialog();
+            LoadData();
+        }
+
+        private void EditOrderButton_Click(object sender, RoutedEventArgs e)
+        {
+            var selectedOrder = (Order)datagridOrders.SelectedItem;
+
+            if (selectedOrder != null)
+            {
+                OrderDialog orderDialog = new OrderDialog(selectedOrder);
+                orderDialog.ShowDialog();
+
+                LoadData();
+            }
+            else
+            {
+                MessageBox.Show("Пожалуйста, выберите заказ для редактирования.");
+            }
+        }
+
+        private void DeleteOrderButton_Click(object sender, RoutedEventArgs e)
+        {
+            var selectedOrder = (Order)datagridOrders.SelectedItem;
+
+            if (selectedOrder != null)
+            {
+                var result = MessageBox.Show("Вы уверены, что хотите удалить этот заказ?",
+                                             "Подтверждение удаления",
+                                             MessageBoxButton.YesNo,
+                                             MessageBoxImage.Warning);
+
+                if (result == MessageBoxResult.Yes)
+                {
+                    using (var context = new HolidayContext())
+                    {
+                        var orderToDelete = context.Orders.Include(o => o.Client)
+                                                          .Include(o => o.IdGoodsNavigation)
+                                                          .FirstOrDefault(o => o.IdOrders == selectedOrder.IdOrders);
+
+                        if (orderToDelete != null)
+                        {
+                            context.Orders.Remove(orderToDelete);
+                            context.SaveChanges();
+                        }
+                    }
+
+                    LoadData();
+                }
+            }
+            else
+            {
+                MessageBox.Show("Пожалуйста, выберите заказ для удаления.");
+            }
+        }
+
+
+        private void ComboxFilter_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            var selectedItem = ComboxFilter.SelectedItem as string;
+
+            if (selectedItem != null)
+            {
+                var filtered = string.IsNullOrEmpty(selectedItem) || selectedItem == "Все"
+                    ? _allOrders
+                    : _allOrders.Where(o => o.IdGoodsNavigation.Name == selectedItem).ToList();
+
+                datagridOrders.ItemsSource = filtered;
+            }
+        }
+
+        private void SearchTextBox_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            string searchText = SearchTextBox.Text.ToLower();
+
+            var filtered = _allOrders.Where(o => o.Client.LastName.ToLower().Contains(searchText) ||
+                            o.IdGoodsNavigation.Name.ToLower().Contains(searchText))
+                .ToList();
+
+            datagridOrders.ItemsSource = filtered;
+        }
+
+        private void datagridOrders_MouseDoubleClick(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        {
+            var selectedOrder = (Order)datagridOrders.SelectedItem;
+            if (selectedOrder != null)
+            {
+                ViewOrder viewOrderWindow = new ViewOrder(selectedOrder);
+                viewOrderWindow.ShowDialog();
+                LoadData();
+            }
+        }
+    }
+}
+
+    
+</body>
+</html>
